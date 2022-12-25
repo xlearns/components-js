@@ -1,0 +1,204 @@
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .scrollbar {
+    position: relative;
+    overflow: hidden;
+  }
+  .scrollbar-bar {
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    z-index: 1;
+    opacity: 0;
+    width: 6px;
+    height: 100%;
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0.1);
+    transition: opacity 120ms ease-out;
+  }
+  .scrollbar-thumb {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 0;
+    border-radius: inherit;
+    background-color: rgba(135, 141, 153, 0.3);
+    transition: 0.3s background-color;
+    cursor: pointer;
+  }
+  .scrollbar:hover .scrollbar-bar {
+    /* 鼠标移动上去显示，移除隐藏 */
+    opacity: 1;
+    transition: opacity 340ms ease-out;
+  }
+  .box {
+    height: 100vh;
+    overflow: auto;
+  }
+  li {
+    line-height: 46px;
+    height: 46px;
+  }
+</style>
+<div class="scrollbar">
+  <div class="scrollbar-content">
+    <ul class="box">
+      <li>11111</li>
+      <li>11111</li>
+      <li>11111</li>
+      <li>11111</li>
+      <li>11111</li>
+      <li>11111</li>
+      <li>11111</li>
+      <li>11111</li>
+      <li>11111</li>
+      <li>11111</li>
+      <li>11111</li>
+      <li>11111</li>
+      <li>11111</li>
+      <li>11111</li>
+      <li>11111</li>
+      <li>11111</li>
+    </ul>
+  </div>
+  <div class="scrollbar-bar">
+    <div ref="thumb" class="scrollbar-thumb"></div>
+  </div>
+</div>
+<script>
+  function init(dom) {
+    dom.innerHTML = Array.from(
+      { length: 20 },
+      (undefined, _) => `<li>hello ${_}</li>`
+    ).join("");
+  }
+</script>
+<script>
+  // 内容区
+  let wrap = document.getElementsByClassName("box")[0];
+  // 滚动框
+  let bar = document.getElementsByClassName("scrollbar-bar")[0];
+  // 滚动条
+  let thumb = document.getElementsByClassName("scrollbar-thumb")[0];
+  let cursorDown = false; //是否按下滚动条
+  let clickThumbAxis = 0; //鼠标点击滚动条的位置
+
+  //内容初始化
+  init(wrap);
+
+  let gutter = getScrollWidth();
+
+  if (gutter) {
+    wrap.style.marginRight = `-${gutter}px`;
+  }
+  updateThumb();
+
+  //内容区滚动
+  wrap.addEventListener("scroll", handleScroll);
+
+  //滚动框点击
+  bar.addEventListener("click", clickTrackHandle);
+
+  //滚动条点击
+  thumb.addEventListener("mousedown", function (e) {
+    startDrag(e);
+    clickThumbAxis =
+      e.currentTarget.offsetHeight -
+      (e.clientY - e.currentTarget.getBoundingClientRect().top);
+  });
+
+  function display(status) {
+    const bool = status ? "block" : "none";
+    [(thumb, bar)].forEach((dom) => {
+      dom.style.display = bool;
+    });
+  }
+
+  function getScrollWidth() {
+    const outer = document.createElement("div");
+    outer.style.width = "100px";
+    outer.style.visibility = "hidden";
+    outer.style.position = "absolute";
+    outer.style.top = "-9999px";
+    document.body.appendChild(outer);
+
+    const widthNoScroll = outer.offsetWidth;
+    outer.style.overflow = "scroll";
+
+    const inner = document.createElement("div");
+    inner.style.width = "100%";
+    outer.appendChild(inner);
+
+    const widthWithScroll = inner.offsetWidth;
+    outer.parentNode.removeChild(outer);
+    scrollBarWidth = widthNoScroll - widthWithScroll;
+
+    return scrollBarWidth;
+  }
+
+  function updateThumb() {
+    let heightPercentage = (wrap.clientHeight * 100) / wrap.scrollHeight;
+    thumb.style.height = heightPercentage + "%";
+    if (heightPercentage == 100) {
+      display(false);
+    }
+  }
+
+  function handleScroll() {
+    let moveY = (wrap.scrollTop * 100) / wrap.clientHeight;
+    //通过计算出来的百分比，然后对滚动条执行translate移动
+    thumb.style.transform = "translateY(" + moveY + "%)";
+  }
+
+  function clickTrackHandle(e) {
+    //获得点击位置与滚动框顶部之间的距离
+    const offset = Math.abs(e.target.getBoundingClientRect().top - e.clientY);
+    //让点击位置处于滚动条的中间
+    const thumbHalf = thumb.offsetHeight / 2;
+    //计算出滚动条在滚动框的百分比位置
+    const thumbPositionPercentage =
+      ((offset - thumbHalf) * 100) / wrap.offsetHeight;
+    //通过改变scrollTop来操作。所有操作滚动条的最后一步都是通过handleScroll来实现
+    wrap.scrollTop = (thumbPositionPercentage * wrap.scrollHeight) / 100;
+  }
+
+  function startDrag(e) {
+    e.stopImmediatePropagation();
+    e.stopPropagation();
+    cursorDown = true;
+    document.addEventListener("mousemove", mouseMoveDocumentHandler);
+    document.addEventListener("mouseup", mouseUpDocumentHandler);
+
+    document.onselectstart = false;
+  }
+
+  function mouseMoveDocumentHandler(e) {
+    if (cursorDown === false) return;
+    const prevPage = clickThumbAxis;
+
+    if (!prevPage) return;
+
+    //获得点击位置与 滚动框顶部 之间的距离
+    const offset = (bar.getBoundingClientRect().top - e.clientY) * -1;
+
+    //获得点击位置与 滚动条顶部 之间的距离
+    const thumbClickPosition = thumb.offsetHeight - prevPage;
+    //获得滚动条所处的百分比位置
+    const thumbPositionPercentage =
+      ((offset - thumbClickPosition) * 100) / bar.offsetHeight;
+    //计算出滚动条应该在滚动框中所处的位置，scrollTop
+
+    wrap.scrollTop = (thumbPositionPercentage * wrap.scrollHeight) / 100;
+  }
+
+  function mouseUpDocumentHandler(e) {
+    cursorDown = false;
+    clickThumbAxis = 0;
+    document.removeEventListener("mousemove", mouseMoveDocumentHandler);
+    document.onselectstart = null;
+  }
+</script>
