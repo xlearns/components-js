@@ -1,15 +1,8 @@
-import { Scrollbar } from "./lib";
+const app = document.querySelector('#app');
+const examples = import.meta.glob('./example/*.html')
+let html = ''
+Object.entries(examples).forEach(([key,val]) => {
+  html +=`<p><a href='${key}'>${key.replace('./example/','')}</a></p>`
+})
 
-const dom = document.querySelector(".container");
-// 使用示例
-const scrollbar = new Scrollbar(dom, {
-  width: "100%",
-  height: "100%",
-  trackColor: "#f00",
-  thumbColor: "#0f0",
-  thumbHoverColor: "#00f",
-  thumbSize: "auto",
-  thumbMinSize: 50,
-  scrollbarPadding: 10,
-  smoothScrolling: false,
-});
+app.innerHTML = html
